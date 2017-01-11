@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # My Apps
     'ga',
+    'oauth',
 ]
 
 MIDDLEWARE = [
@@ -141,3 +142,12 @@ GOOGLE_OAUTH2_STORAGE_MODEL = {
 }
 
 LOGIN_URL = '/login'
+
+# Local Settings
+
+LOCAL = True
+
+if LOCAL:
+    GOOGLE_REDIRECT = 'http://127.0.0.1:8000/oauth2/redirect/'
+else:
+    GOOGLE_REDIRECT = 'http://Analytic.me/oauth2/redirect/'

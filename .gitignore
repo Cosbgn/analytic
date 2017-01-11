@@ -1,7 +1,7 @@
 # Private files #
 ######################
 analytic/private_settings.py
-ga/client_secrets.json
+client_secrets.json
 
 # Django/Python Compiled files #
 ######################
