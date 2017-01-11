@@ -1,0 +1,14 @@
+Django==1.10.5
+google-api-python-client==1.5.5
+httplib2==0.9.2
+inflection==0.3.1
+jsonpickle==0.9.3
+oauth2client==4.0.0
+ORM==1.1.0
+pyasn1==0.1.9
+pyasn1-modules==0.0.8
+python-gflags==3.1.0
+rsa==3.4.2
+six==1.10.0
+SQLAlchemy==1.1.4
+uritemplate==3.0.0
