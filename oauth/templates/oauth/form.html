@@ -1,0 +1,84 @@
+{% extends "oauth/base.html" %}
+
+{% block title %}{{ title }}{% endblock title %}
+
+{% block main %}
+{% load static %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-6 col-md-offset-3 text-center">
+            <div class="col-sm-2"></div>
+            <div class="col-sm-10">
+                <h2 align='center'>{{ title }}</h2>
+            </div>
+        </div>
+    </div>
+<div class="row">
+  <div class="col-md-6 col-md-offset-3 text-center">
+    <form class="form-horizontal" role="form" method="POST" action="">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <div class="col-sm-2"></div>
+        {% for error in form.errors.email %}
+          <div class="col-sm-10">
+            {{ error }}
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="form-group">
+        <div class="col-sm-2">
+          <label for="id_email" class="control-label">Email</label>
+        </div>
+        <div class="col-sm-10">
+          <input type="email" name="email" class="form-control" id="id_email" placeholder="Your Email Address" required>
+        </div>
+      </div>
+
+
+      <div class="form-group">
+        <div class="col-sm-2"></div>
+        {% for error in form.errors.password %}
+          <div class="col-sm-10">
+            {{ error }}
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="form-group">
+        <div class="col-sm-2">
+          <label for="id_password" class="control-label">Password</label>
+        </div>
+        <div class="col-sm-10">
+          <input type="password" name="password" class="form-control" id="id_password" placeholder="Your Password" required>
+        </div>
+      </div>
+
+      {% if title == "Registration" %}
+        <div class="col-sm-offset-2 col-sm-10">
+          <a href="{% url 'login' %}">Already have an account?</a>
+        </div>
+      {% endif %}
+      {% if title == "Log in" %}
+        <div class="col-sm-offset-2 col-sm-10">
+          <a href="{% url 'register' %}">Don't have an account?</a>
+        </div>
+      {% endif %}
+
+      <!-- Button -->
+      <div class="form-group">
+        <div class="col-sm-offset-2 col-sm-10">
+          <button type="submit">{{ button }}</button>
+        </div>
+      </div>
+
+    </form>
+  </div>
+</div>
+</div>
+
+{% endblock main %}
+
+{% block footer %}{% endblock footer %}

@@ -9,7 +9,7 @@ from oauth2client.client import OAuth2WebServerFlow
 from oauth2client.contrib.django_util.storage import DjangoORMStorage
 from django.conf import settings
 
-from oauth.models import CredentialsModel
+from oauth.models import Credentials
 # import argparse
 #
 # from apiclient.discovery import build
@@ -22,6 +22,7 @@ from oauth.models import CredentialsModel
 class Index(TemplateView):
     template_name = 'ga/index.html'
 
+@decorators.oauth_required
 def ga(request): # Example from oAuth2client
    return HttpResponse("email:")
    #@decorators.oauth_required

@@ -1,66 +1,55 @@
-from django.http import HttpResponse
-from django.contrib.auth import get_user_model
-from django.core.urlresolvers import reverse_lazy
-from django.template.context import RequestContext
+# from oauth2client.contrib.django_orm import Storage  -- DOESN'T WORK
+# Alternative to Django_orm
+from oauth2client.contrib.django_util.storage import DjangoORMStorage
+# Others
+import httplib2
+from django.conf import settings
 from django.contrib.auth import login as auth_login
 from django.contrib.auth import logout as auth_logout
-from django.contrib.auth.models import User, UserManager
-from django.shortcuts import render_to_response, redirect, render
-from django.http import (HttpResponse, HttpResponseBadRequest, HttpResponseRedirect)
-
-# to get credentials
-from .models import CredentialsModel
-
-import pickle
-from YamJam import yamjam
-from apiclient import discovery
-from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.core.urlresolvers import reverse_lazy
+from django.http import (HttpResponse, HttpResponseBadRequest,
+                         HttpResponseRedirect)
+from django.shortcuts import redirect
 from oauth2client.contrib import xsrfutil
-from oauth2client.client import OAuth2WebServerFlow
-from oauth2client.contrib.django_util.storage import DjangoORMStorage
 
+from oauth2client.client import OAuth2WebServerFlow
+
+from .models import Credentials
+import pickle
 
 def get_flow(request):
     flow = OAuth2WebServerFlow(
         client_id=settings.GOOGLE_OAUTH2_CLIENT_ID,
         client_secret=settings.GOOGLE_OAUTH2_CLIENT_SECRET,
-        scope= settings.GOOGLE_OAUTH2_SCOPES
-        redirect_uri=settings.GOOGLE_REDIRECT,
-        access_type='offline', # ??? What's this?
-        prompt="consent", # ??? What's this?
+        scope=settings.GOOGLE_SCOPE,
+        redirect_uri=settings.OAUTH_REDIRECT_URI,
+        access_type='offline',
+        state=''
     )
-
     return flow
 
-def home(request):
-   context = RequestContext(request, {'request':request, 'user':request.user })
-   return render_to_response('ga/index.html', context=context)
-S
 
-def get_creds(request):
-    """
-    builds flow
-    after successful authorizing of app redirects to user auth pages
-    """
-    flow = get_flow(request)
-    flow.params['state'] = xsrfutil.generate_token(settings.SECRET_KEY,
-                                                       request.user.id)
-    request.session['flow'] = pickle.dumps(flow).decode('iso-8859-1')
-    redirect_uri = flow.step1_get_authorize_url()
+def login(request):
+    next = request.GET.get('next', 'home')
+    request.session['next'] = next
 
-    return redirect(redirect_uri)
+    if not request.user.is_authenticated():
+        flow = get_flow(request)
+        flow.params['state'] = xsrfutil.generate_token(settings.SECRET_KEY,
+                                                       request.user)
+        request.session['flow'] = pickle.dumps(flow).decode('iso-8859-1')
+        redirect_uri = flow.step1_get_authorize_url()
+        return redirect(redirect_uri)
+    else:
+        return redirect(reverse_lazy(next))
 
 
 def oauth2redirect(request):
-    """
-    validates user token,
-    saves user credentials into db
-    redirects you to 'viz/' (viz/views.viz)
-    """
     # Make sure that the request is from who we think it is
     if not xsrfutil.validate_token(settings.SECRET_KEY,
                                    request.GET.get('state').encode('utf8'),
-                                   request.user.id):
+                                   request.user):
         return HttpResponseBadRequest()
 
     code = request.GET.get('code')
@@ -72,26 +61,43 @@ def oauth2redirect(request):
 
         request.session['creds'] = credentials.to_json()
         email = credentials.id_token.get("email")
-        user = User.objects.get(email=email)
+        user_exists = False
+        try:
+            user = User.objects.get(email=email)
+            user_exists = True
+        except User.DoesNotExist:
+            user = create_user(credentials)
 
         # Since we've oauth2'd the user, we should set the backend appropriately
         # This is usually done by the authenticate() method.
         user.backend = 'django.contrib.auth.backends.ModelBackend'
-
         # Refresh token is needed for renewing google api access token
         if credentials.refresh_token:
             user.refresh_token = credentials.refresh_token
         user.save()
 
-        storage = DjangoORMStorage(CredentialsModel, 'id', user, 'credentials')
+        storage = DjangoORMStorage(Credentials, 'id', user, 'credential')
         storage.put(credentials)
 
         # Register that the user has successfully logged in
         auth_login(request, user)
 
-        return redirect('viz')
-
+        next = request.session.get('next', reverse_lazy('/'))
+        return HttpResponseRedirect(next)
     elif code is None and error:
         return HttpResponse(str(error))
     else:
         return HttpResponseBadRequest()
+
+
+@login_required
+def logout(request):
+    user = request.user
+    credentials = Credentials.objects.get(id=user.id)
+    credentials.revoke(httplib2.Http())
+    credentials.delete()
+    storage = DjangoORMStorage(Credentials, 'id', user, 'credential')
+    storage.delete()
+
+    auth_logout(request)
+    return HttpResponseRedirect('/')
