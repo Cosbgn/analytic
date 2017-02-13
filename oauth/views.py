@@ -17,6 +17,7 @@ from oauth2client.client import OAuth2WebServerFlow
 
 from .models import Credentials
 import pickle
+from django.contrib.auth.models import User
 
 def get_flow(request):
     flow = OAuth2WebServerFlow(
@@ -66,7 +67,8 @@ def oauth2redirect(request):
             user = User.objects.get(email=email)
             user_exists = True
         except User.DoesNotExist:
-            user = create_user(credentials)
+        #    user = create_user(credentials)   --- Doesn't work!!
+             user = User.objects.create_user(credentials)
 
         # Since we've oauth2'd the user, we should set the backend appropriately
         # This is usually done by the authenticate() method.
